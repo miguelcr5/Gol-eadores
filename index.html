@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GOL-EADORES | Nutrición -Exoneracion Bromatologia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Poppins:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --magenta: #ff00ff; --cyan: #00ffff; --bg: #050505; --verde: #2ecc71; --amarillo: #f1c40f; --rosa: #ff69b4; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg); color: white; margin: 0; overflow-x: hidden; touch-action: manipulation; }
+        
+        header { text-align: center; padding: 15px; background: #111; border-bottom: 2px solid var(--magenta); }
+        .game-title { font-family: 'Orbitron'; font-size: 1.8rem; text-shadow: 0 0 10px var(--magenta); margin: 0; }
+
+        /* ESTADIO */
+        .scoreboard { display: flex; justify-content: center; gap: 20px; font-family: 'Orbitron'; font-size: 2.2rem; margin: 10px 0; color: var(--cyan); text-shadow: 0 0 10px var(--cyan); }
+        #game-canvas-container { 
+            position: relative; width: 95vw; max-width: 800px; height: 350px; 
+            margin: 0 auto; background: #000; border: 3px solid var(--cyan); 
+            border-radius: 10px; overflow: hidden; transition: box-shadow 0.2s;
+        }
+        .goal-post { position: absolute; bottom: 30px; width: 15px; height: 120px; border: 2px solid white; background: rgba(255,255,255,0.1); z-index: 1; }
+        .goal-left { left: 0; border-left: none; }
+        .goal-right { right: 0; border-right: none; }
+        
+        .ground { 
+            position: absolute; bottom: 0; width: 100%; height: 30px; 
+            background: repeating-linear-gradient(90deg, #1e8449, #1e8449 40px, #27ae60 40px, #27ae60 80px);
+            border-top: 2px solid white; 
+        }
+
+        /* JUGADORES ANIMADOS */
+        .player { position: absolute; width: 50px; height: 70px; z-index: 10; display: flex; flex-direction: column; align-items: center; }
+        .head { width: 35px; height: 35px; border-radius: 50%; border: 1px solid #000; }
+        .body-sprite { width: 40px; height: 30px; border-radius: 5px; margin-top: -2px; }
+        #ball { position: absolute; width: 25px; height: 25px; font-size: 22px; z-index: 5; display: flex; align-items: center; justify-content: center; }
+
+        /* CONTROLES */
+        .mobile-controls { display: grid; grid-template-columns: 1fr 1fr; max-width: 800px; margin: 15px auto; gap: 20px; padding: 0 10px; }
+        .pad { display: flex; gap: 10px; justify-content: center; }
+        .btn-touch { width: 55px; height: 55px; background: #222; border: 2px solid var(--cyan); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: white; box-shadow: 0 4px 0 var(--cyan); }
+        .btn-touch:active { transform: translateY(4px); box-shadow: none; }
+
+        /* SECCIÓN FUTBOLISTAS CON FOTOS */
+        .players-section { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+        .section-title { font-family: 'Orbitron'; color: var(--magenta); border-left: 5px solid var(--magenta); padding-left: 15px; margin-bottom: 20px; }
+        .players-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .player-card { background: #111; border: 1px solid #333; border-radius: 15px; padding: 15px; display: flex; align-items: center; gap: 15px; border-bottom: 3px solid var(--cyan); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        
+        .player-photo-container { 
+            width: 80px; height: 80px; border-radius: 12px; 
+            background: #222; border: 2px solid var(--magenta); 
+            overflow: hidden; flex-shrink: 0; 
+        }
+        .player-photo-container img { 
+            width: 100%; height: 100%; object-fit: cover; 
+        }
+
+        .player-info h4 { margin: 0; color: var(--cyan); font-family: 'Orbitron'; font-size: 0.95rem; }
+        .player-info p { margin: 5px 0; font-size: 0.75rem; opacity: 0.8; line-height: 1.2; }
+        .stats { display: flex; gap: 8px; margin-top: 8px; }
+        .stat-tag { background: #000; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; border: 1px solid #444; color: var(--amarillo); font-family: 'Orbitron'; }
+
+        /* NUTRICIÓN */
+        .grid-footer { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; padding: 20px; max-width: 1000px; margin: 0 auto; }
+        .neon-panel { background: #111; border: 2px solid var(--magenta); border-radius: 15px; padding: 20px; }
+        .semaforo-row { display: flex; align-items: center; background: #222; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+        .color-box { width: 80px; padding: 10px; text-align: center; font-weight: bold; font-size: 0.7rem; }
+        
+        /* EFECTO DE GOL */
+        .goal-flash { animation: flash 0.4s ease-out 2; }
+        @keyframes flash { 50% { background: #330033; box-shadow: 0 0 50px var(--magenta); } }
+        /* Animación de pulso para las fotos de los jugadores */
+.player-photo-container {
+    animation: glow-pulse 3s infinite ease-in-out;
+}
+
+@keyframes glow-pulse {
+    0% { box-shadow: 0 0 5px var(--magenta); }
+    50% { box-shadow: 0 0 20px var(--magenta), 0 0 10px var(--cyan); }
+    100% { box-shadow: 0 0 5px var(--magenta); }
+}
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 class="game-title">GOL-EADORES </h1>
+    <div class="scoreboard"><span id="score1">0</span><span>-</span><span id="score2">0</span></div>
+</header>
+
+<div id="game-canvas-container">
+    <div class="goal-post goal-left"></div>
+    <div class="goal-post goal-right"></div>
+    <div class="ground"></div>
+    <div id="player1" class="player"><div class="head" style="background:#ffe0bd"></div><div class="body-sprite" style="background:var(--rosa)"></div></div>
+    <div id="player2" class="player"><div class="head" style="background:#5c4033"></div><div class="body-sprite" style="background:var(--amarillo)"></div></div>
+    <div id="ball">⚽</div>
+</div>
+
+<div class="mobile-controls">
+    <div class="pad">
+        <div class="btn-touch" id="btn-p1-left">⬅️</div><div class="btn-touch" id="btn-p1-up">⏫</div><div class="btn-touch" id="btn-p1-right">➡️</div>
+    </div>
+    <div class="pad">
+        <div class="btn-touch" id="btn-p2-left">⬅️</div><div class="btn-touch" id="btn-p2-up">⏫</div><div class="btn-touch" id="btn-p2-right">➡️</div>
+    </div>
+</div>
+
+<section class="players-section">
+    <h2 class="section-title">PERFILES PRO: GOL-EADORES</h2>
+    <div class="players-grid">
+        <div class="player-card">
+            <div class="player-photo-container">
+                <img src="TU_IMAGEN_AQUÍ_1.jpg" alt="Moi Caicedo">
+            </div>
+            <div class="player-info">
+                <h4>MOISÉS CAICEDO</h4>
+                <p>El motor del medio campo. Su resistencia física depende de una carga óptima de glucógeno.</p>
+                <div class="stats">
+                    <span class="stat-tag">VIT: 99</span><span class="stat-tag">FZA: 88</span><span class="stat-tag">POS: 95</span>
+                </div>
+            </div>
+        </div>
+        <div class="player-card">
+            <div class="player-photo-container">
+                <img src="TU_IMAGEN_AQUÍ_2.jpg" alt="Piero Hincapié">
+            </div>
+            <div class="player-info">
+                <h4>PIERO HINCAPIÉ</h4>
+                <p>Seguridad absoluta. Mantiene su enfoque y reflejos con micronutrientes de alta calidad.</p>
+                <div class="stats">
+                    <span class="stat-tag">DEF: 96</span><span class="stat-tag">VEL: 85</span><span class="stat-tag">REB: 90</span>
+                </div>
+            </div>
+        </div>
+        <div class="player-card">
+            <div class="player-photo-container">
+                <img src="TU_IMAGEN_AQUÍ_3.jpg" alt="Enner Valencia">
+            </div>
+            <div class="player-info">
+                <h4>ENNER VALENCIA</h4>
+                <p>Potencia pura en el área. Recuperación muscular rápida post-partido con GOL-EADORES.</p>
+                <div class="stats">
+                    <span class="stat-tag">GOL: 98</span><span class="stat-tag">POT: 92</span><span class="stat-tag">SAL: 94</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="grid-footer">
+    <div class="neon-panel">
+        <h3 style="font-family:'Orbitron'; color:var(--cyan); margin-top:0;">SEMÁFORO NUTRICIONAL</h3>
+        <div class="semaforo-row"><div class="color-box" style="background:var(--verde)">BAJO</div><div class="desc-box" style="padding:10px">EN AZUCAR</div></div>
+        <div class="semaforo-row"><div class="color-box" style="background:var(--amarillo); color:black">MEDIO</div><div class="desc-box" style="padding:10px">EN GRASA </div></div>
+        <div class="semaforo-row"><div class="color-box" style="background:var(--verde)">BAJO</div><div class="desc-box" style="padding:10px">EN SAL</div></div>
+    </div>
+    <div class="neon-panel">
+        <h3 style="font-family:'Orbitron'; color:var(--magenta); margin-top:0;">CRÉDITOS</h3>
+        <p style="font-size:0.9rem;"><b>Desarrollado por:</b><br>Christian Gavilanes ;Israel Toral</p>
+        <p style="font-size:0.8rem; border-top:1px solid #333; padding-top:10px;">
+            "El talento te lleva a la cancha, pero la nutrición te mantiene en ella. GOL-EADORES es mi combustible para dominar los 90 minutos con la misma intensidad del primer segundo." EXONERENOS PROFE - Universidad Católica de Guayaquil</p>
+    </div>
+</div>
+
+<script>
+    const ball = document.getElementById('ball');
+    const p1 = document.getElementById('player1');
+    const p2 = document.getElementById('player2');
+    const container = document.getElementById('game-canvas-container');
+    const s1 = document.getElementById('score1');
+    const s2 = document.getElementById('score2');
+
+    let p1X = 100, p1Y = 0, v1Y = 0;
+    let p2X = 650, p2Y = 0, v2Y = 0;
+    let bX = 380, bY = 150, bVX = 4, bVY = 0;
+    let score1 = 0, score2 = 0;
+    const gravity = 0.5;
+
+    const keys = {};
+    window.addEventListener('keydown', (e) => keys[e.code] = true);
+    window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+    function setT(id, code) {
+        const b = document.getElementById(id);
+        b.addEventListener('touchstart', (e) => { e.preventDefault(); keys[code] = true; });
+        b.addEventListener('touchend', (e) => { e.preventDefault(); keys[code] = false; });
+    }
+    setT('btn-p1-left','KeyA'); setT('btn-p1-right','KeyD'); setT('btn-p1-up','KeyW');
+    setT('btn-p2-left','ArrowLeft'); setT('btn-p2-right','ArrowRight'); setT('btn-p2-up','ArrowUp');
+
+    function goal() {
+        container.classList.add('goal-flash');
+        setTimeout(() => container.classList.remove('goal-flash'), 800);
+        bX = 380; bY = 150; bVY = 0;
+    }
+
+    function update() {
+        if(keys['KeyA'] && p1X > 10) p1X -= 6; if(keys['KeyD'] && p1X < 350) p1X += 6;
+        if(keys['KeyW'] && p1Y === 0) v1Y = 12;
+        if(keys['ArrowLeft'] && p2X > 400) p2X -= 6; if(keys['ArrowRight'] && p2X < 740) p2X += 6;
+        if(keys['ArrowUp'] && p2Y === 0) v2Y = 12;
+
+        v1Y -= gravity; p1Y += v1Y; if(p1Y < 0) {p1Y=0; v1Y=0;}
+        v2Y -= gravity; p2Y += v2Y; if(p2Y < 0) {p2Y=0; v2Y=0;}
+
+        bVY -= 0.25; bX += bVX; bY -= bVY;
+
+        if(bX <= 0) { 
+            if(bY > 200) { score2++; s2.innerText = score2; bVX=5; goal(); }
+            else { bVX *= -0.7; bX = 1; }
+        }
+        if(bX >= 775) { 
+            if(bY > 200) { score1++; s1.innerText = score1; bVX=-5; goal(); }
+            else { bVX *= -0.7; bX = 774; }
+        }
+        if(bY >= 320) { bY = 320; bVY *= -0.7; }
+        if(bY <= 0) { bY = 0; bVY *= -0.8; }
+
+        if(Math.abs((p1X+25)-(bX+12)) < 40 && Math.abs((p1Y+60)-(350-bY-12)) < 45) { bVY = 10; bVX = 8; }
+        if(Math.abs((p2X+25)-(bX+12)) < 40 && Math.abs((p2Y+60)-(350-bY-12)) < 45) { bVY = 10; bVX = -8; }
+
+        p1.style.left = p1X + 'px'; p1.style.bottom = (30 + p1Y) + 'px';
+        p2.style.left = p2X + 'px'; p2.style.bottom = (30 + p2Y) + 'px';
+        ball.style.left = bX + 'px'; ball.style.top = bY + 'px';
+        requestAnimationFrame(update);
+    }
+    update();
+</script>
+</body>
+</html>
